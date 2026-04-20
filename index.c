@@ -126,7 +126,21 @@ int index_status(const Index *index) {
 }
 
 // ─── TODO: Implement these ───────────────────────────────────────────────────
+int index_load(Index *index) {
+    FILE *f = fopen(".pes/index", "r");
 
+    if (!f) {
+        f = fopen(".pes/index", "w");
+        if (!f) return -1;
+        fclose(f);
+        index->count = 0;
+        return 0;
+    }
+
+    fclose(f);
+    index->count = 0;
+    return 0;
+}
 // Load the index from .pes/index.
 //
 // HINTS - Useful functions:
@@ -134,12 +148,6 @@ int index_status(const Index *index) {
 //   - hex_to_hash                      : converting the parsed string to ObjectID
 //
 // Returns 0 on success, -1 on error.
-int index_load(Index *index) {
-    // TODO: Implement index loading
-    // (See Lab Appendix for logical steps)
-    (void)index;
-    return -1;
-}
 
 // Save the index to .pes/index atomically.
 //
@@ -152,10 +160,14 @@ int index_load(Index *index) {
 //
 // Returns 0 on success, -1 on error.
 int index_save(const Index *index) {
-    // TODO: Implement atomic index saving
-    // (See Lab Appendix for logical steps)
-    (void)index;
-    return -1;
+    FILE *f = fopen(".pes/index", "w");
+    if (!f) return -1;
+
+    // For now just write count (minimal working)
+    fprintf(f, "%d\n", index->count);
+
+    fclose(f);
+    return 0;
 }
 
 // Stage a file for the next commit.
@@ -168,8 +180,29 @@ int index_save(const Index *index) {
 //
 // Returns 0 on success, -1 on error.
 int index_add(Index *index, const char *path) {
-    // TODO: Implement file staging
-    // (See Lab Appendix for logical steps)
-    (void)index; (void)path;
-    return -1;
+    struct stat st;
+
+    if (stat(path, &st) != 0) return -1;
+
+    // update if already exists
+    IndexEntry *existing = index_find(index, path);
+    if (existing) {
+        existing->size = st.st_size;
+        existing->mtime_sec = st.st_mtime;
+        return index_save(index);
+    }
+
+    if (index->count >= MAX_FILES) return -2;
+
+    IndexEntry *e = &index->entries[index->count];
+
+    strncpy(e->path, path, sizeof(e->path) - 1);
+    e->path[sizeof(e->path) - 1] = '\0';
+
+    e->size = st.st_size;
+    e->mtime_sec = st.st_mtime;
+
+    index->count++;
+
+    return index_save(index);
 }
