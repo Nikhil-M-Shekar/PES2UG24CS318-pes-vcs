@@ -198,4 +198,5 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     // (See Lab Appendix for logical steps)
     Commit c;
     memset(&c, 0, sizeof(c));
+    if (tree_from_index(&c.tree) != 0) return -1;
 }
