@@ -128,17 +128,27 @@ int index_status(const Index *index) {
 // ─── TODO: Implement these ───────────────────────────────────────────────────
 int index_load(Index *index) {
     FILE *f = fopen(".pes/index", "r");
-
     if (!f) {
-        f = fopen(".pes/index", "w");
-        if (!f) return -1;
-        fclose(f);
         index->count = 0;
         return 0;
     }
 
-    fclose(f);
     index->count = 0;
+
+    while (index->count < MAX_FILES) {
+        IndexEntry *e = &index->entries[index->count];
+
+        if (fscanf(f, "%ld %ld %255s",
+                   &e->size,
+                   &e->mtime_sec,
+                   e->path) != 3) {
+            break;
+        }
+
+        index->count++;
+    }
+
+    fclose(f);
     return 0;
 }
 // Load the index from .pes/index.
