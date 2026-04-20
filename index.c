@@ -160,13 +160,25 @@ int index_load(Index *index) {
 //
 // Returns 0 on success, -1 on error.
 int index_save(const Index *index) {
-    FILE *f = fopen(".pes/index", "w");
+    FILE *f = fopen(".pes/index.tmp", "w");
     if (!f) return -1;
 
-    // For now just write count (minimal working)
-    fprintf(f, "%d\n", index->count);
+    for (int i = 0; i < index->count; i++) {
+        const IndexEntry *e = &index->entries[i];
 
+        // format: size mtime path
+        fprintf(f, "%ld %ld %s\n",
+                e->size,
+                e->mtime_sec,
+                e->path);
+    }
+
+    fflush(f);
+    fsync(fileno(f));
     fclose(f);
+
+    rename(".pes/index.tmp", ".pes/index");
+
     return 0;
 }
 
